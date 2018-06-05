@@ -11,8 +11,8 @@ class NeatlineCoverImagePlugin extends Omeka_Plugin_AbstractPlugin
         'uninstall',
         'neatline_editor_static',
         'neatline_editor_templates',
+        'neatline_exhibits_browse_sql',
     );
-
 
     protected $_filters = array(
         'neatline_exhibit_expansions',
@@ -66,6 +66,26 @@ SQL
         if ($args['exhibit']->hasWidget(self::ID)) {
             echo get_view()->partial('coverimage/editor/form.php');
         }
+    }
+
+    /**
+     * Fetch Cover Image files for Neatline Exhibits on Browse page.
+     * They will be in the same order as the exhibits. Themes should
+     * check that the file's id field is set, as the File may contain
+     * null values if a Cover Image is not set for an exhibit.
+     */
+    public function hookNeatlineExhibitsBrowseSql($args)
+    {
+        $select = clone $args['select'];
+        $select->reset('columns');
+        $fileTable = $this->_db->getTable('File');
+        $fileAlias = $fileTable->getTableAlias();
+        $select->joinLeft(
+            array($fileAlias => $fileTable->getTableName()),
+            "cover_image_file_id = $fileAlias.id",
+            array('*', 'neatline_exhibits.id AS neatline_exhibit_id')
+        );
+        get_view()->files = $fileTable->fetchObjects($select);
     }
 
     /** Add a tab in the Neatline Exhibit to configure the cover image. */
